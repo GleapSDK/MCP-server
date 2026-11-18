@@ -304,16 +304,19 @@ export const fetchWorkflow = async (
   );
 };
 
-/** The session's kickoff (GET agent-brief): the brief first, then feedback and the session file. */
+/**
+ * The session's kickoff: GET agent-workflow without a kind, so the Server picks the session's own
+ * kind and returns the brief as Markdown (`markdown`; `brief` is its structured form).
+ */
 export const getSessionBrief = async (sessionId: string): Promise<GleapApiResponse> => {
-  const route = sessionRoute({ sessionId }, "agent-brief");
+  const route = sessionRoute({ sessionId }, "agent-workflow");
   if (!route) return failure("Pass sessionId: the 24-char Gleap coding-session id your kickoff names.");
   const fetched = await gleapGetData(route.path);
   if ("error" in fetched) return fetched.error;
   const result = (fetched.data ?? {}) as Record<string, any>;
   const early = stoppedOrFailed(result);
   if (early) return early;
-  const brief = typeof result.brief === "string" ? result.brief : "";
+  const brief = typeof result.markdown === "string" ? result.markdown : "";
   if (!brief.trim()) return failure("Gleap returned no brief for this session.");
   return withLines(
     { content: [{ type: "text", text: brief }], structuredContent: result },

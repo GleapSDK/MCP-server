@@ -1,7 +1,9 @@
 // get_session_brief: the kickoff of a Gleap coding session, fetched from the
 // Server instead of carried in the deep link. The link names only the session;
 // the brief (ticket, rules, findings, repository) comes from
-// GET /gleapcode/sessions/{id}/agent-brief.
+// GET /gleapcode/sessions/{id}/agent-workflow without a kind: the Server picks
+// the session's own kind and returns the brief as Markdown in `markdown`
+// (`brief` is its structured form).
 import assert from 'node:assert/strict';
 import { beforeEach, describe, test } from 'node:test';
 import axios from 'axios';
@@ -28,6 +30,7 @@ registerSessionTools(registry);
 const PROJECT = '613b5dd730aed737108f87ab';
 const SESSION = '64f0c0ffee0000000000abcd';
 const STOPPED = '64f0c0ffee0000000000dead';
+const BRIEF_FIELDS = { ticket: { bugId: 7 }, repository: 'GleapSDK/Frontend', skill: 'fix-ticket' };
 const BRIEF = '# Fix ticket #7\nYour session owns ticket #7. Repository: GleapSDK/Frontend. Load the Gleap plugin skill fix-ticket.';
 const HOOK = { sessionId: SESSION, token: 'hook-jwt-secret', apiBase: 'https://api.gleap.io/v3', expiresAt: '2026-11-14T12:00:00Z' };
 
@@ -38,17 +41,18 @@ beforeEach(() => {
   axios.defaults.adapter = async (config) => {
     requests.push({ method: config.method, url: config.url, params: config.params, headers: config.headers });
     const ok = (data) => ({ data, status: 200, statusText: 'OK', headers: {}, config });
-    if (config.url.endsWith(`/gleapcode/sessions/${STOPPED}/agent-brief`)) {
-      return ok({ success: true, sessionId: STOPPED, stop: true, kind: 'fix', brief: '' });
+    if (config.url.endsWith(`/gleapcode/sessions/${STOPPED}/agent-workflow`)) {
+      return ok({ success: true, sessionId: STOPPED, stop: true, kind: 'fix', brief: BRIEF_FIELDS, markdown: BRIEF });
     }
-    if (config.url.endsWith(`/gleapcode/sessions/${SESSION}/agent-brief`)) {
+    if (config.url.endsWith(`/gleapcode/sessions/${SESSION}/agent-workflow`)) {
       return ok({
         success: true,
         sessionId: SESSION,
         stop: false,
         hook: HOOK,
         kind: 'fix',
-        brief: BRIEF,
+        brief: BRIEF_FIELDS,
+        markdown: BRIEF,
         operatorFeedback: { message: 'Your operator asked for changes: keep the old button label.' },
       });
     }
@@ -69,11 +73,13 @@ describe('get_session_brief', () => {
     assert.match(config.description, /get_session_brief|kickoff/);
   });
 
-  test('GETs the session\'s agent-brief with the caller\'s project', async () => {
+  test('GETs the session\'s agent-workflow without a kind, with the caller\'s project', async () => {
     await call({ sessionId: SESSION });
     assert.equal(requests.length, 1);
     assert.equal(requests[0].method, 'get');
-    assert.equal(new URL(requests[0].url).pathname, `/v3/gleapcode/sessions/${SESSION}/agent-brief`);
+    assert.equal(new URL(requests[0].url).pathname, `/v3/gleapcode/sessions/${SESSION}/agent-workflow`);
+    assert.equal(requests[0].params?.kind, undefined);
+    assert.equal(new URL(requests[0].url).searchParams.has('kind'), false);
     assert.equal(header(requests[0].headers, 'project'), PROJECT);
   });
 

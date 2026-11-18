@@ -13,11 +13,11 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 
 process.env.GLEAP_API_BASE = 'https://gleap-api.invalid/v3';
-const { registerSessionTools } = await import('../build/tools/session.tool.js');
-const { runWithCreds } = await import('../build/utils/credentials.js');
-const { applySessionScopePolicy } = await import('../build/utils/sessionScope.js');
-const { applyProjectSelection, registerProjectTools } = await import('../build/utils/projectSelection.js');
-const { STOP_TEXT } = await import('../build/utils/agentSession.js');
+const { registerSessionTools } = await import('../src/tools/session.tool.js');
+const { runWithCreds } = await import('../src/utils/credentials.js');
+const { applySessionScopePolicy } = await import('../src/utils/sessionScope.js');
+const { applyProjectSelection, registerProjectTools } = await import('../src/utils/projectSelection.js');
+const { STOP_TEXT } = await import('../src/utils/agentSession.js');
 
 const tools = new Map();
 const registry = {

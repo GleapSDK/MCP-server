@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import axios from "axios";
 import {
+  GetSessionBriefArgs,
   GetTicketScreenshotArgs,
   MAX_ARTIFACT_HTML_BYTES,
   MAX_SHARE_BASE64_BYTES,
@@ -62,6 +63,20 @@ const HOSTED_WORKFLOW: Record<string, string> = {
 export const MAX_TICKET_SCREENSHOT_BYTES = 2_000_000;
 
 export const registerSessionTools = (server: McpServer) => {
+  server.registerTool(
+    "get_session_brief",
+    {
+      title: "Get Session Brief",
+      description:
+        "The kickoff of a Gleap coding session: the first call when a kickoff names a Gleap coding session (its sessionId). The result is the agent's kickoff: the ticket, the ownership rules, Kai Support's findings, what an earlier session left, the repository and the setup steps. The workflow itself comes from the Gleap plugin skill the brief names. The result also carries the operator's newest feedback and the session file the Gleap plugin reads. A stopped session returns only the STOP instruction.",
+      inputSchema: GetSessionBriefArgs.shape,
+      // Not read-only: Gleap hands out operator feedback once, and a
+      // multi-project grant must name the session's project.
+      annotations: { ...WRITE, idempotentHint: true },
+    },
+    async ({ sessionId }): Promise<GleapApiResponse> => getSessionBrief(sessionId),
+  );
+
   server.registerTool(
     "update_plan",
     {
@@ -286,6 +301,23 @@ export const fetchWorkflow = async (
   return withLines(
     { content: [{ type: "text", text: markdown }], structuredContent: result },
     [operatorFeedbackLine(result), sessionIdLine(target, result), hookLine(result)],
+  );
+};
+
+/** The session's kickoff (GET agent-brief): the brief first, then feedback and the session file. */
+export const getSessionBrief = async (sessionId: string): Promise<GleapApiResponse> => {
+  const route = sessionRoute({ sessionId }, "agent-brief");
+  if (!route) return failure("Pass sessionId: the 24-char Gleap coding-session id your kickoff names.");
+  const fetched = await gleapGetData(route.path);
+  if ("error" in fetched) return fetched.error;
+  const result = (fetched.data ?? {}) as Record<string, any>;
+  const early = stoppedOrFailed(result);
+  if (early) return early;
+  const brief = typeof result.brief === "string" ? result.brief : "";
+  if (!brief.trim()) return failure("Gleap returned no brief for this session.");
+  return withLines(
+    { content: [{ type: "text", text: brief }], structuredContent: result },
+    [operatorFeedbackLine(result), hookLine(result)],
   );
 };
 

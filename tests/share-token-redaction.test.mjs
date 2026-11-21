@@ -166,4 +166,12 @@ describe('stripShareTokensFromText / stripShareTokensFromResult', () => {
     assert.equal(input.structuredContent.shareToken, SHARE);
     assert.equal(leaks(input.content[0].text), true);
   });
+  test('a long run of backslashes before a quote (customer text) is scanned in linear time', () => {
+    // A ticket field the customer wrote: thousands of backslashes, then a quote and the word sharetoken.
+    const text = `{"note":"${'\\\\'.repeat(40_000)}\\" sharetoken", x {\\"shareToken\\":\\"${SHARE}\\"}`;
+    const started = performance.now();
+    const out = stripShareTokensFromText(text);
+    assert.ok(performance.now() - started < 250, `took ${Math.round(performance.now() - started)} ms`);
+    assert.equal(out.includes(SHARE), false);
+  });
 });

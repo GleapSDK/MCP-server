@@ -53,6 +53,7 @@ import { registerWorkflowBuilderTools } from "./tools/workflowBuilder.tool.js";
 import { registerSetupTools } from "./tools/setup.tool.js";
 import { registerToolboxTools } from "./tools/toolbox.tool.js";
 import { limitToolsForChatGpt, toolNamesRegisteredBy } from "./utils/chatgptTools.js";
+import { loggableToolName, refuseOversizedBatch } from "./utils/rpcBatch.js";
 import { readCreds, runWithCreds } from "./utils/credentials.js";
 import type { Creds } from "./types/index.js";
 import { startLoopWatchdog, trackToolCall } from "./utils/loopWatchdog.js";
@@ -322,6 +323,7 @@ const describeAuth = (req: express.Request): string => {
 // WWW-Authenticate header) of every MCP request.
 // Tool calls also log when they start and carry the tool name: a call that
 // never finishes (the 2026-10-21 EU hang) otherwise leaves no line at all.
+app.post(MCP_PATH, refuseOversizedBatch);
 app.all(MCP_PATH, (req, res, next) => {
   const startedAt = Date.now();
   const rpcMethod =
@@ -335,11 +337,11 @@ app.all(MCP_PATH, (req, res, next) => {
     (msg: any) => msg?.method === "tools/call",
   );
   const toolNames = toolCalls
-    .map((msg: any) => String(msg?.params?.name ?? "?").slice(0, 80))
+    .map((msg: any) => loggableToolName(msg?.params?.name))
     .join(",");
   const tool = toolNames ? ` tool=${toolNames}` : "";
   const untrack = toolCalls.map((msg: any) =>
-    trackToolCall(String(msg?.params?.name ?? "?").slice(0, 80), auth, msg?.params?.arguments),
+    trackToolCall(loggableToolName(msg?.params?.name), auth, msg?.params?.arguments),
   );
   if (tool) console.log(`[gleap-mcp] start rpc=${rpcMethod}${tool} auth=${auth}`);
 

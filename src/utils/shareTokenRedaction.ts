@@ -64,8 +64,9 @@ export const stripShareTokens = <T>(value: T): T => {
  * `"…shareToken": "value"` in any text, also inside JSON escaped into a string
  * (`\"shareToken\":\"value\"`): the quote form is captured and matched again.
  */
+// A match starts only where a backslash run starts, so long runs in customer text stay linear.
 const SHARE_TOKEN_PAIR =
-  /(\\*")(\w*sharetoken|gleaphash|gleapid|gleapidsecret|fileaccesstoken)\1(\s*:\s*)\1(?:(?!\1)[\s\S])*?\1/gi;
+  /(?<!\\)(\\*")(\w*sharetoken|gleaphash|gleapid|gleapidsecret|fileaccesstoken)\1(\s*:\s*)\1(?:(?!\1)[\s\S])*?\1/gi;
 /** Text that may hold one of the keys (a cheap check before parsing). */
 const MENTIONS_SECRET = /sharetoken|gleaphash|gleapid|fileaccesstoken|authtokens|"signed"/i;
 

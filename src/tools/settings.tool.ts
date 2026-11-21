@@ -11,15 +11,24 @@ import { gleapGet, gleapPut, validationErrorResponse } from "../utils/api.js";
  * never returned. Risky changes run only with `confirmed: true` after the person said yes.
  */
 
+const STATIC_TRANSLATIONS_PAGE = "static-translations";
 const READ = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } as const;
 const WRITE = { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false } as const;
+
+/** Settings › Static translations: Gleap's UI texts, read by language, key or words and changed one cell at a time. */
+const STATIC_TRANSLATIONS_EXAMPLE = "{key:'flowConfig.staticTranslations', value:[{key:'newConversation', locale:'de', text:'Neue Anfrage'}]}";
+const STATIC_TRANSLATIONS_HELP =
+  "Gleap's widget, email and survey texts as the project words them; get_settings with locale, texts or search reads them with Gleap's text and a status; " +
+  `change one text and language at a time, e.g. ${STATIC_TRANSLATIONS_EXAMPLE}, text null resets it to Gleap's, never the whole table; ` +
+  "placeholders in single braces as Gleap's text has them ({name}), locked texts only reset";
 
 /** The pages and their main keys, for the descriptions (the API's list is the full truth). */
 const PAGES_HELP =
   "Pages (key: main fields): " +
   "general (name, picture, moveToOpenOnReply, autoAssignTicketToRecentCommenter, reactionsEnabled, threadsEnabled, customArchiveDate …); " +
   "operating-hours (flowConfig.showOnlineStatus, alwaysOnline, timezone, openingTimes [{day: All days|Weekdays|Weekends|Monday…, openingTime 'HH:MM', closingTime}], replyTime, holidays); " +
-  "sla (slaOptions.enabled, defaultSla in seconds, ticketTypes, restUrl); languages (localizations); static-translations (flowConfig.staticTranslations); " +
+  "sla (slaOptions.enabled, defaultSla in seconds, ticketTypes, restUrl); languages (localizations); " +
+  "static-translations (flowConfig.staticTranslations: " + STATIC_TRANSLATIONS_HELP + "); " +
   "user-identity (secureSessionIdentify, acceptLegacyUserHash, customerIdentity, protectedContactFields, protectedCompanyFields, customerAuth, authenticatedConversationFiles …); allowed-domains (allowedWidgetDomains); " +
   "widget-install (flowConfig.trackWidgetInteractions); widget-look (flowConfig.color, darkColor, backgroundColor, colorScheme, headerColor, bgType, feedbackButtonPosition, buttonColor, hideBranding, borderRadius, customCSS …); " +
   "widget-content (flowConfig.welcomeText, hideNews, hideKnowledgeBase, startPage, homeWidgets …); widget-conversations (flowConfig.ticketHeaderMode, sendOnEnter, disableAttachments …); aichatbar (aiBar.*); " +
@@ -61,16 +70,26 @@ export const registerSettingsTools = (server: McpServer) => {
     {
       title: "Get Settings",
       description:
-        "Current values of a settings page (`page`) or of named setting keys (`keys`). Pages of items (teams, macros, help center sites, webhooks) list their items with ids. Secrets show only whether they are set ({ set: true }). Read a value before you change it, so lists and objects go back whole with only the change made.",
+        "Current values of a settings page (`page`) or of named setting keys (`keys`). Pages of items (teams, macros, help center sites, webhooks) list their items with ids. Secrets show only whether they are set ({ set: true }). Read a value before you change it, so lists and objects go back whole with only the change made. " +
+        "Static translations (Gleap's widget, email and survey texts) show one language (`locale`, the primary one when left out): the project's own wording, or the texts named in `texts` or found by `search` (use it to find a text's key), each with Gleap's text and its status; at most 25 rows. `locale`, `texts` or `search` alone read that page.",
       inputSchema: GetSettingsArgs.shape,
       annotations: READ,
     },
     async (args): Promise<GleapApiResponse> => {
-      if (!args.page && !args.keys?.length) return validationErrorResponse("Give a page or keys (list_setting_pages names them).");
+      const textsQuery = {
+        ...(args.locale ? { locale: args.locale } : {}),
+        ...(args.texts?.length ? { texts: args.texts.join(",") } : {}),
+        ...(args.search ? { search: args.search } : {}),
+      };
+      const hasTextsQuery = Object.keys(textsQuery).length > 0;
+      // The texts parameters only mean something on Static translations, so alone they read that page.
+      const page = args.page ?? (hasTextsQuery && !args.keys?.length ? STATIC_TRANSLATIONS_PAGE : undefined);
+      if (!page && !args.keys?.length) return validationErrorResponse("Give a page or keys (list_setting_pages names them).");
       return gleapGet("/settings", {
         params: {
-          ...(args.page ? { page: args.page } : {}),
+          ...(page ? { page } : {}),
           ...(args.keys?.length ? { keys: args.keys.join(",") } : {}),
+          ...textsQuery,
         },
       });
     },
@@ -81,7 +100,7 @@ export const registerSettingsTools = (server: McpServer) => {
     {
       title: "Update Settings",
       description:
-        "Change project settings with the connected person's rights, through the dashboard's own saves. A field change is { key, value }; an item change is { page, op: create|update|delete, id, values }. Returns what changed (before → after) and what was refused and why. Risky changes do not run without `confirmed: true`: the first call lists them in needsConfirmation and changes nothing; ask the person, and only after their explicit yes call again with confirmed: true. Risky: " + RISKY_SETTINGS_HELP + " Also inbound email off, SSO, deleting a team, macro, site or webhook. Examples: {key:'flowConfig.color', value:'#2142E7'}; {key:'flowConfig.openingTimes', value:[{day:'Weekdays', openingTime:'09:00', closingTime:'17:00'}]}; {page:'project-teams', op:'create', values:{name:'Billing', members:['anna@acme.com']}}.",
+        "Change project settings with the connected person's rights, through the dashboard's own saves. A field change is { key, value }; an item change is { page, op: create|update|delete, id, values }. Returns what changed (before → after) and what was refused and why. Risky changes do not run without `confirmed: true`: the first call lists them in needsConfirmation and changes nothing; ask the person, and only after their explicit yes call again with confirmed: true. Risky: " + RISKY_SETTINGS_HELP + " Also inbound email off, SSO, deleting a team, macro, site or webhook. Examples: {key:'flowConfig.color', value:'#2142E7'}; " + STATIC_TRANSLATIONS_EXAMPLE + " (one text in one language; text null resets it to Gleap's); {key:'flowConfig.openingTimes', value:[{day:'Weekdays', openingTime:'09:00', closingTime:'17:00'}]}; {page:'project-teams', op:'create', values:{name:'Billing', members:['anna@acme.com']}}.",
       inputSchema: UpdateSettingsArgs.shape,
       annotations: WRITE,
     },

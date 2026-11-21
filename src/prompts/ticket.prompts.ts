@@ -7,6 +7,7 @@ import { getSessionScope, runInProject } from "../utils/credentials.js";
 import { sessionRoute } from "../utils/kaiSession.js";
 import { slimTicket } from "../utils/projections.js";
 import { stripShareTokens } from "../utils/shareTokenRedaction.js";
+import { untrustedBlock } from "../utils/untrustedBlock.js";
 
 /**
  * MCP prompts (slash commands in most clients): `/fix_ticket #123` and
@@ -111,7 +112,7 @@ export const registerTicketPrompts = (server: McpServer, projects?: ProjectCreds
       const kind = data.type === "FEATURE_REQUEST" ? "feature" : "fix";
       const workflow = await inProject(project, () => workflowText(ref, kind));
       return promptMessage(
-        `Work Gleap ticket ${ref} in this repository. You own this ticket until it is solved: keep working it through the customer's replies. Follow the workflow below; the ticket summary is the starting point, fetch the full ticket and conversation with the Gleap tools.${projectLine(project)}\n\n## Ticket\n\`\`\`json\n${summaryOf(data)}\n\`\`\`\n\n## Workflow\n${workflow}`,
+        `Work Gleap ticket ${ref} in this repository. You own this ticket until it is solved: keep working it through the customer's replies. Follow the workflow below; the ticket summary is the starting point, fetch the full ticket and conversation with the Gleap tools.${projectLine(project)}\n\n## Workflow\n${workflow}\n\n${untrustedBlock({ label: "Ticket", lang: "json", text: summaryOf(data) })}`,
       );
     },
   );
@@ -128,7 +129,7 @@ export const registerTicketPrompts = (server: McpServer, projects?: ProjectCreds
       const { data, project } = await findTicket(ref, projects, requested);
       const workflow = await inProject(project, () => workflowText(ref, "answer"));
       return promptMessage(
-        `Answer Gleap ticket ${ref} from what this repository's code does. You own this ticket until it is solved: keep working it through the customer's replies. Follow the workflow below; fetch the full conversation with the Gleap tools first.${projectLine(project)}\n\n## Ticket\n\`\`\`json\n${summaryOf(data)}\n\`\`\`\n\n## Workflow\n${workflow}`,
+        `Answer Gleap ticket ${ref} from what this repository's code does. You own this ticket until it is solved: keep working it through the customer's replies. Follow the workflow below; fetch the full conversation with the Gleap tools first.${projectLine(project)}\n\n## Workflow\n${workflow}\n\n${untrustedBlock({ label: "Ticket", lang: "json", text: summaryOf(data) })}`,
       );
     },
   );

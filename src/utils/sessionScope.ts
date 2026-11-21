@@ -97,6 +97,17 @@ const scopeDenied = (toolName: string): GleapApiResponse => {
   };
 };
 
+const namesCodingSession = (toolName: string): GleapApiResponse => {
+  const message =
+    `${toolName}: a customer-scoped run cannot name a coding session (sessionId). ` +
+    "Call it without sessionId; only a coding agent working its own session passes one.";
+  return {
+    isError: true,
+    content: [{ type: "text", text: message }],
+    structuredContent: { error: true, sessionScope: true, message },
+  };
+};
+
 const wrongCustomer = (toolName: string): GleapApiResponse => {
   const message =
     `${toolName}: that ticket belongs to a different customer than this run serves. ` +
@@ -344,6 +355,8 @@ export const applySessionScopePolicy = (server: McpServer): void => {
         return handler(...handlerArgs);
       }
       const args = handlerArgs[0];
+      // A sessionId makes the call act as that coding session, whatever ticketId says.
+      if (typeof args?.sessionId === "string" && args.sessionId.trim()) return namesCodingSession(name);
       if (ALLOWED_UNDER_SCOPE.has(name)) {
         const argRule = SCOPED_ARG_RULES[name];
         if (!argRule) return handler(...handlerArgs);

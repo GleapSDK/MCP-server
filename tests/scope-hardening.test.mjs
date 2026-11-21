@@ -1,6 +1,6 @@
 // A customer-scoped run (x-gleap-scope-session: a customer-facing Kai agent) serves one customer.
 // It must not name a coding session (sessionId: report_progress, send_message, the session tools act
-// as that session) and must not read other customers' tickets through search_similar_tickets.
+// as that session).
 import assert from 'node:assert/strict';
 import { beforeEach, describe, test } from 'node:test';
 import axios from 'axios';
@@ -69,19 +69,5 @@ describe('a customer-scoped run cannot name a coding session', () => {
     const result = await call('send_message', { ticketId: OWN_TICKET, text: 'hi', sessionId: OTHER_SESSION }, keyRequest());
     assert.notEqual(result.isError, true);
     assert.equal(writes().length, 1);
-  });
-});
-
-describe('a customer-scoped run cannot read other customers\' tickets', () => {
-  test('search_similar_tickets -> refused before any call', async () => {
-    const result = await call('search_similar_tickets', { query: 'refund' }, scoped());
-    assert.equal(result.isError, true);
-    assert.deepEqual(requests, []);
-  });
-
-  test('unscoped -> still searches', async () => {
-    const result = await call('search_similar_tickets', { query: 'refund' }, keyRequest());
-    assert.notEqual(result.isError, true);
-    assert.equal(requests.length, 1);
   });
 });

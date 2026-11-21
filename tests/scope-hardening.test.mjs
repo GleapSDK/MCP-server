@@ -48,7 +48,7 @@ const writes = () => requests.filter((r) => r.method !== 'get');
 
 describe('a customer-scoped run cannot name a coding session', () => {
   test('report_progress with another sessionId on the own ticket -> refused, nothing written', async () => {
-    const result = await call('report_progress', { ticketId: OWN_TICKET, sessionId: OTHER_SESSION, status: 'completed' }, scoped());
+    const result = await call('report_progress', { ticketId: OWN_TICKET, sessionId: OTHER_SESSION, status: 'completed', message: 'done' }, scoped());
     assert.equal(result.isError, true);
     assert.deepEqual(writes(), []);
   });

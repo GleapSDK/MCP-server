@@ -1,6 +1,6 @@
 # Gleap MCP Server
 
-Connect your [Gleap](https://gleap.io) workspace to Claude and other AI assistants via the [Model Context Protocol](https://modelcontextprotocol.io). Manage tickets, contacts, help center articles, and statistics using natural language.
+Connect your [Gleap](https://www.gleap.ai) workspace to Claude and other AI assistants via the [Model Context Protocol](https://modelcontextprotocol.io). Manage tickets, contacts, help center articles, and statistics using natural language.
 
 ## Prerequisites
 
@@ -579,5 +579,5 @@ and refresh the client's tool discovery before using the new tools.
 
 ## Support
 
-- Website: [https://gleap.io](https://gleap.io)
+- Website: [https://www.gleap.ai](https://www.gleap.ai)
 - Email: [support@gleap.io](mailto:support@gleap.io)

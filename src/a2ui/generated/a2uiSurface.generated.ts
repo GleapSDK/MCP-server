@@ -33,73 +33,77 @@ export interface A2uiSurface {
 }
 
 /** What a surface hangs on. The id parts after the kind are joined with ':'. */
-export enum A2uiOwnerKind {
+export const A2uiOwnerKind = {
   /** `comment:<commentId>`: a chat card or a workflow step on a ticket message. */
-  Comment = 'comment',
+  Comment: 'comment',
   /** `toolcall:<agentConversationId>:<messageId>:<toolCallId>`: an Operator / Copilot pane card. */
-  ToolCall = 'toolcall',
+  ToolCall: 'toolcall',
   /** `task:<agentTaskId>`: a ticket pane card (question, approval, proposed reply, …). */
-  Task = 'task',
+  Task: 'task',
   /** `ticket:<ticketId>:<slot>`: a ticket pane box that is not a task (hand-over, work on it). */
-  Ticket = 'ticket',
+  Ticket: 'ticket',
   /** `kaicode:<sessionId>:<messageId>`: a Kai Code session card. */
-  KaiCode = 'kaicode',
+  KaiCode: 'kaicode',
   /** `custom:<widgetId>`: a customer-defined widget; its actions never reach the Server. */
-  Custom = 'custom',
-}
+  Custom: 'custom',
+} as const;
+export type A2uiOwnerKind = (typeof A2uiOwnerKind)[keyof typeof A2uiOwnerKind];
 
 /** Every action a surface can send. The value is the A2UI action `name` on the wire. */
-export enum A2uiActionName {
+export const A2uiActionName = {
   /** A customer answers a chat card. Context: CardAnswerContext. */
-  CardAnswer = 'card.answer',
+  CardAnswer: 'card.answer',
   /** A customer answers a workflow step (input, buttons, rating, booking). Context: StepAnswerContext. */
-  StepAnswer = 'step.answer',
+  StepAnswer: 'step.answer',
   /** Workflow "verify email": send the code. Context: { email }. */
-  StepVerifyEmailSend = 'step.verify_email.send',
+  StepVerifyEmailSend: 'step.verify_email.send',
   /** Workflow "verify email": check the code. Context: { code }. */
-  StepVerifyEmailCheck = 'step.verify_email.check',
+  StepVerifyEmailCheck: 'step.verify_email.check',
   /** A teammate confirms or cancels a Copilot pane action. Context: { decision }. */
-  CopilotDecide = 'copilot.decide',
+  CopilotDecide: 'copilot.decide',
   /** A teammate takes back an instruction Copilot passed on. Context: { instructionId }. */
-  CopilotUndoInstruction = 'copilot.undo_instruction',
+  CopilotUndoInstruction: 'copilot.undo_instruction',
   /** A teammate answers the ticket's agent (option, hand over, stop, …). Context: AgentInputContext. */
-  AgentInput = 'agent.input',
+  AgentInput: 'agent.input',
   /** Ticket pane card: send the proposed reply. Context: { text? }. */
-  TaskSend = 'task.send',
+  TaskSend: 'task.send',
   /** Ticket pane card: answer. Context: { answer }. */
-  TaskAnswer = 'task.answer',
+  TaskAnswer: 'task.answer',
   /** Ticket pane card: approve. Context: { note?, amount? }. */
-  TaskApprove = 'task.approve',
+  TaskApprove: 'task.approve',
   /** Ticket pane card: reject. Context: { note? }. */
-  TaskReject = 'task.reject',
+  TaskReject: 'task.reject',
   /** Ticket pane card: dismiss. Context: {}. */
-  TaskDismiss = 'task.dismiss',
+  TaskDismiss: 'task.dismiss',
   /** Ticket pane card: bring the Copilot draft back. Context: {}. */
-  TaskRestore = 'task.restore',
+  TaskRestore: 'task.restore',
   /** Copilot setup card. Context: { action, body? }. */
-  SetupAction = 'setup.action',
+  SetupAction: 'setup.action',
   /** Kai Code question card. Context: { answers: string[][] }. */
-  KaiCodeAnswer = 'kaicode.answer',
+  KaiCodeAnswer: 'kaicode.answer',
   /** Kai Code next-step card. Context: { index, turnId? }. */
-  KaiCodeWrapUp = 'kaicode.wrap_up',
+  KaiCodeWrapUp: 'kaicode.wrap_up',
   /** Kai Code plan review. Context: { approve, feedback? }. */
-  KaiCodePlan = 'kaicode.plan',
-}
+  KaiCodePlan: 'kaicode.plan',
+} as const;
+export type A2uiActionName = (typeof A2uiActionName)[keyof typeof A2uiActionName];
 
-export enum CardAnswerAction {
-  Confirm = 'confirm',
-  Cancel = 'cancel',
-  Submit = 'submit',
-  Select = 'select',
-}
+export const CardAnswerAction = {
+  Confirm: 'confirm',
+  Cancel: 'cancel',
+  Submit: 'submit',
+  Select: 'select',
+} as const;
+export type CardAnswerAction = (typeof CardAnswerAction)[keyof typeof CardAnswerAction];
 
-export enum CardAnswerKind {
-  Answer = 'answer',
+export const CardAnswerKind = {
+  Answer: 'answer',
   /** Take a confirmation back. */
-  Undo = 'undo',
+  Undo: 'undo',
   /** A second message on an answered card (the booking provider's confirmation). */
-  FollowUp = 'followUp',
-}
+  FollowUp: 'followUp',
+} as const;
+export type CardAnswerKind = (typeof CardAnswerKind)[keyof typeof CardAnswerKind];
 
 export interface CardAnswerContext {
   action: CardAnswerAction;

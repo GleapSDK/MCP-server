@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { GleapApiResponse } from "../types/index.js";
 import { gleapGetData, gleapPost, validationErrorResponse, wrapResponse } from "../utils/api.js";
-import type { A2uiActionMessage, A2uiActionResponse } from "../a2ui/generated/a2uiSurface.types.js";
+import type { A2uiActionMessage, A2uiActionResponse } from "../a2ui/generated/a2uiSurface.generated.js";
 
 const AnswerTicketCardArgs = z.object({
   ticketId: z.string().describe("The ticket whose open Kai card to read or answer"),

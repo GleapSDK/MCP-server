@@ -2103,6 +2103,52 @@
         "args"
       ]
     },
+    "gleapHttpRequest": {
+      "type": "object",
+      "returnType": "void",
+      "properties": {
+        "@call": {
+          "const": "gleapHttpRequest"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Represents a string"
+            },
+            "url": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Represents a string"
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "body": {},
+            "successMessage": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Represents a string"
+            },
+            "errorMessage": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Represents a string"
+            }
+          },
+          "required": [
+            "method",
+            "url"
+          ],
+          "unevaluatedProperties": false
+        }
+      },
+      "required": [
+        "@call",
+        "args"
+      ]
+    },
     "gleapNavigate": {
       "type": "object",
       "returnType": "void",
@@ -2299,6 +2345,9 @@
         },
         {
           "$ref": "#/functions/gleapCustomAction"
+        },
+        {
+          "$ref": "#/functions/gleapHttpRequest"
         },
         {
           "$ref": "#/functions/gleapNavigate"

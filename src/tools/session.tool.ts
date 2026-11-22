@@ -11,7 +11,7 @@ import {
 } from "../schemas/session.schema.js";
 import { GleapApiResponse } from "../types/index.js";
 import { gleapGetData, gleapPost } from "../utils/api.js";
-import type { A2uiSurface } from "../a2ui/generated/a2uiSurface.types.js";
+import type { A2uiSurface } from "../a2ui/generated/a2uiSurface.generated.js";
 import { artifactSurface, kaiCodeSurfaceId, planSurface, shareSurface, wrapUpSurface } from "../utils/a2uiSurfaces.js";
 import { isGleapHostedUrl, sniffImageType } from "../utils/images.js";
 import {

@@ -4,8 +4,8 @@
  * small tree and flattened into the id-linked component list A2UI wants, like
  * the Gleap Server's own builder. Links are plain https or left out.
  */
-import type { A2uiComponent, A2uiSurface } from "../a2ui/generated/a2uiSurface.types.js";
-import { GLEAP_CATALOG_ID } from "../a2ui/generated/gleapCatalog.types.js";
+import type { A2uiComponent, A2uiSurface } from "../a2ui/generated/a2uiSurface.generated.js";
+import { GLEAP_CATALOG_ID } from "../a2ui/generated/gleapCatalogTypes.generated.js";
 
 interface A2uiNode {
   component: string;

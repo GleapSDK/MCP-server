@@ -11,6 +11,8 @@ import {
 } from "../schemas/session.schema.js";
 import { GleapApiResponse } from "../types/index.js";
 import { gleapGetData, gleapPost } from "../utils/api.js";
+import type { A2uiSurface } from "../a2ui/generated/a2uiSurface.types.js";
+import { artifactSurface, kaiCodeSurfaceId, planSurface, shareSurface, wrapUpSurface } from "../utils/a2uiSurfaces.js";
 import { isGleapHostedUrl, sniffImageType } from "../utils/images.js";
 import {
   baseName,
@@ -34,22 +36,30 @@ import {
 const WRITE = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } as const;
 
 /**
- * Text-first result: lines for every client, `view` for MCP Apps hosts. The
+ * Text-first result: lines for every client, `a2ui` (an A2UI 1.0 surface) for MCP Apps hosts. The
  * session file (`hook`) comes with report_progress and the workflow prompts
  * only: repeating it on every plan, wrap-up, share and page call was the same
  * block (and token) again and again.
  */
-const viewResult = (
-  lines: Array<string | null | undefined>,
-  response: Record<string, any> | undefined,
-  view: Record<string, unknown>,
-): GleapApiResponse => {
+const surfaceResult = ({
+  lines,
+  response,
+  a2ui,
+}: {
+  lines: Array<string | null | undefined>;
+  response: Record<string, any> | undefined;
+  a2ui: A2uiSurface;
+}): GleapApiResponse => {
   const { hook: _hook, ...rest } = response ?? {};
   return {
     content: lines.filter((l): l is string => typeof l === "string" && l.length > 0).map((text) => ({ type: "text" as const, text })),
-    structuredContent: { ...rest, view },
+    structuredContent: { ...rest, a2ui },
   };
 };
+
+/** The surface id of a session card: the session from the arguments or Gleap's answer, and the id Gleap gave this card. */
+const surfaceIdOf = (target: { sessionId?: string; ticketId?: string }, card: { result?: Record<string, unknown>; kind: string; key: string }): string =>
+  kaiCodeSurfaceId({ sessionId: target.sessionId ?? card.result?.sessionId, ticketId: target.ticketId, card: card.kind, ref: card.result?.[card.key] });
 
 /** Hosted copies of the workflows (fallback while a Server without agent-workflow is live). */
 const HOSTED_WORKFLOW: Record<string, string> = {
@@ -82,11 +92,11 @@ export const registerSessionTools = (server: McpServer) => {
       const early = stoppedOrFailed(result);
       if (early) return early;
       const done = plan.items.filter((i) => i.status === "completed").length;
-      return viewResult(
-        [`Plan updated in Gleap (${done} of ${plan.items.length} done).`, operatorFeedbackLine(result), sessionIdLine({ sessionId, ticketId }, result)],
-        result,
-        { kind: "plan", items: plan.items, explanation },
-      );
+      return surfaceResult({
+        lines: [`Plan updated in Gleap (${done} of ${plan.items.length} done).`, operatorFeedbackLine(result), sessionIdLine({ sessionId, ticketId }, result)],
+        response: result,
+        a2ui: planSurface({ surfaceId: surfaceIdOf({ sessionId, ticketId }, { result, kind: "plan", key: "turnId" }), items: plan.items, explanation }),
+      });
     },
   );
 
@@ -117,16 +127,16 @@ export const registerSessionTools = (server: McpServer) => {
       const early = stoppedOrFailed(result);
       if (early) return early;
       const url = typeof result?.sessionUrl === "string" ? result.sessionUrl : undefined;
-      return viewResult(
-        [
+      return surfaceResult({
+        lines: [
           `Wrap-up shown in Gleap as the session's next step${url ? `: ${url}` : "."}`,
           operatorFeedbackLine(result),
           sessionIdLine({ sessionId, ticketId }, result),
         ],
-        result,
-        // No actions in the view: only Gleap can run them, so this host would show dead buttons. It links there instead.
-        { kind: "wrap_up", recap: recap.trim(), ask: ask?.trim() || undefined, url },
-      );
+        response: result,
+        // No actions in the surface: only Gleap can run them, so this host would show dead buttons. It links there instead.
+        a2ui: wrapUpSurface({ surfaceId: surfaceIdOf({ sessionId, ticketId }, { result, kind: "wrapup", key: "turnId" }), recap, ask, url }),
+      });
     },
   );
 
@@ -155,11 +165,11 @@ export const registerSessionTools = (server: McpServer) => {
         const result = res.structuredContent as Record<string, any> | undefined;
         const early = stoppedOrFailed(result);
         if (early) return early;
-        return viewResult(
-          ["Shared with your operator in Gleap.", operatorFeedbackLine(result), sessionIdLine({ sessionId, ticketId }, result)],
-          result,
-          { kind: "share", ...common, compare: checked.images.length > 1, status: "shared" },
-        );
+        return surfaceResult({
+          lines: ["Shared with your operator in Gleap.", operatorFeedbackLine(result), sessionIdLine({ sessionId, ticketId }, result)],
+          response: result,
+          a2ui: shareSurface({ surfaceId: surfaceIdOf({ sessionId, ticketId }, { result, kind: "share", key: "shareId" }), ...common, shared: true }),
+        });
       }
 
       const paths = [path, compare_with].filter((p): p is string => typeof p === "string" && p.trim().length > 0).map((p) => p.trim());
@@ -183,16 +193,16 @@ export const registerSessionTools = (server: McpServer) => {
       // The Server's own `uploads[].command` is built from the file name we
       // sent, not the local path: `commands` is the one set of commands.
       const shared = { ...result, uploads: uploads.map(({ name, url }) => ({ name, url })), commands };
-      return viewResult(
-        [
+      return surfaceResult({
+        lines: [
           `Run ${commands.length > 1 ? "these commands" : "this command"} now (the link${commands.length > 1 ? "s expire" : " expires"}${result?.expiresAt ? ` at ${result.expiresAt}` : " in 15 minutes"}); the screenshot appears in the Gleap session once the upload${commands.length > 1 ? "s land" : " lands"}:`,
           commands.join("\n"),
           operatorFeedbackLine(result),
           sessionIdLine({ sessionId, ticketId }, result),
         ],
-        shared,
-        { kind: "share", ...common, compare: paths.length > 1, status: "upload_pending" },
-      );
+        response: shared,
+        a2ui: shareSurface({ surfaceId: surfaceIdOf({ sessionId, ticketId }, { result, kind: "share", key: "shareId" }), ...common, shared: false }),
+      });
     },
   );
 
@@ -222,15 +232,15 @@ export const registerSessionTools = (server: McpServer) => {
       const early = stoppedOrFailed(result);
       if (early) return early;
       const url = typeof result?.url === "string" ? result.url : undefined;
-      return viewResult(
-        [
+      return surfaceResult({
+        lines: [
           `Published "${title.trim()}"${result?.version ? ` (version ${result.version})` : ""} in the Gleap session${url ? `: ${url}` : "."}${result?.artifactId ? ` Pass artifactId "${result.artifactId}" to publish a new version.` : ""}`,
           operatorFeedbackLine(result),
           sessionIdLine({ sessionId, ticketId }, result),
         ],
-        result,
-        { kind: "artifact", title: title.trim(), description: description?.trim() || undefined, url, artifactId: result?.artifactId, version: result?.version },
-      );
+        response: result,
+        a2ui: artifactSurface({ surfaceId: surfaceIdOf({ sessionId, ticketId }, { result, kind: "artifact", key: "artifactId" }), title, description, url }),
+      });
     },
   );
 

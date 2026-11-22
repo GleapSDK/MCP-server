@@ -1,5 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
+import { stripUserRecordsFromResult } from "./userRecordRedaction.js";
+
 /**
  * Ticket share tokens never leave this MCP server.
  *
@@ -115,7 +117,8 @@ export const stripShareTokensFromResult = <T>(result: T): T => {
 
 /**
  * Patch `server.registerTool` so every handler registered afterwards has its result
- * stripped of share tokens. Call once per server instance, BEFORE
+ * stripped of share tokens, and of teammates' full user records
+ * (`src/utils/userRecordRedaction.ts`). Call once per server instance, BEFORE
  * `applySessionScopePolicy` and the tool registrars, so the redaction wraps
  * everything (scope refusals included).
  */
@@ -128,7 +131,7 @@ export const applyShareTokenRedaction = (server: McpServer): void => {
     handler: (...handlerArgs: any[]) => any,
   ) => {
     const redacted = async (...handlerArgs: any[]) =>
-      stripShareTokensFromResult(await handler(...handlerArgs));
+      stripUserRecordsFromResult(stripShareTokensFromResult(await handler(...handlerArgs)));
     return originalRegisterTool(name, meta, redacted as any);
   };
 };

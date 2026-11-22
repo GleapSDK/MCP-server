@@ -819,6 +819,54 @@
       ],
       "unevaluatedProperties": false
     },
+    "GleapStat": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "const": "GleapStat"
+        },
+        "label": {
+          "$ref": "common_types.json#/$defs/DynamicString",
+          "description": "Represents a string"
+        },
+        "value": {
+          "$ref": "common_types.json#/$defs/DynamicString",
+          "description": "Represents a string"
+        },
+        "detail": {
+          "$ref": "common_types.json#/$defs/DynamicString",
+          "description": "Represents a string"
+        },
+        "trend": {
+          "type": "string",
+          "enum": [
+            "up",
+            "down",
+            "flat"
+          ]
+        },
+        "trendLabel": {
+          "$ref": "common_types.json#/$defs/DynamicString",
+          "description": "Represents a string"
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "neutral",
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ]
+        }
+      },
+      "required": [
+        "component",
+        "label",
+        "value"
+      ],
+      "unevaluatedProperties": false
+    },
     "GleapTimeline": {
       "type": "object",
       "properties": {
@@ -889,6 +937,16 @@
               "url": {
                 "type": "string",
                 "maxLength": 2000
+              },
+              "valueTone": {
+                "type": "string",
+                "enum": [
+                  "neutral",
+                  "info",
+                  "success",
+                  "warning",
+                  "danger"
+                ]
               }
             },
             "required": [
@@ -988,6 +1046,10 @@
         },
         "struck": {
           "type": "boolean"
+        },
+        "at": {
+          "type": "string",
+          "maxLength": 4000
         }
       },
       "required": [
@@ -1116,6 +1178,10 @@
           "type": "string",
           "maxLength": 4000
         },
+        "inviteLabel": {
+          "type": "string",
+          "maxLength": 4000
+        },
         "moreTimesUrl": {
           "type": "string",
           "maxLength": 2000
@@ -1126,6 +1192,36 @@
         "action": {
           "$ref": "common_types.json#/$defs/Action",
           "description": "Defines an interaction handler that can either trigger an agent-side event or execute a local renderer-side function."
+        },
+        "providerAction": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "calendly",
+                "calcom"
+              ]
+            },
+            "url": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "value": {
+              "$ref": "common_types.json#/$defs/DataBinding"
+            },
+            "action": {
+              "$ref": "common_types.json#/$defs/Action",
+              "description": "Defines an interaction handler that can either trigger an agent-side event or execute a local renderer-side function."
+            }
+          },
+          "required": [
+            "provider",
+            "url",
+            "value",
+            "action"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1210,6 +1306,14 @@
                   "additionalProperties": false
                 },
                 "maxItems": 8
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "order",
+                  "buy",
+                  "choose"
+                ]
               }
             },
             "required": [
@@ -1335,6 +1439,10 @@
               },
               "recommended": {
                 "type": "boolean"
+              },
+              "ctaLabel": {
+                "type": "string",
+                "maxLength": 4000
               }
             },
             "required": [
@@ -1348,6 +1456,9 @@
           "maxItems": 3
         },
         "value": {
+          "$ref": "common_types.json#/$defs/DataBinding"
+        },
+        "label": {
           "$ref": "common_types.json#/$defs/DataBinding"
         },
         "readOnly": {
@@ -2149,6 +2260,37 @@
         "args"
       ]
     },
+    "gleapShowOnPage": {
+      "type": "object",
+      "returnType": "void",
+      "properties": {
+        "@call": {
+          "const": "gleapShowOnPage"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Represents a string"
+            },
+            "target": {
+              "$ref": "common_types.json#/$defs/DynamicString",
+              "description": "Represents a string"
+            }
+          },
+          "required": [
+            "url",
+            "target"
+          ],
+          "unevaluatedProperties": false
+        }
+      },
+      "required": [
+        "@call",
+        "args"
+      ]
+    },
     "gleapNavigate": {
       "type": "object",
       "returnType": "void",
@@ -2239,6 +2381,9 @@
         },
         {
           "$ref": "#/components/GleapStatusPill"
+        },
+        {
+          "$ref": "#/components/GleapStat"
         },
         {
           "$ref": "#/components/GleapTimeline"
@@ -2348,6 +2493,9 @@
         },
         {
           "$ref": "#/functions/gleapHttpRequest"
+        },
+        {
+          "$ref": "#/functions/gleapShowOnPage"
         },
         {
           "$ref": "#/functions/gleapNavigate"

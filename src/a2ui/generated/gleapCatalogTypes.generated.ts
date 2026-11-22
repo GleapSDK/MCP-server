@@ -3,11 +3,19 @@
 export type A2uiBinding = { '@path': string };
 export type A2uiAction = { event: { name: string; context?: Record<string, unknown> } } | { functionCall: Record<string, unknown> };
 export const GLEAP_CATALOG_ID = "https://gleap.io/a2ui/catalog/v1.json";
-export const GLEAP_COMPONENT_NAMES = ["GleapStatusPill","GleapTimeline","GleapKeyValue","GleapMeter","GleapProgress","GleapReceipt","GleapCodeCopy","GleapSlotPicker","GleapProductCarousel","GleapItemPicker","GleapPlanPicker","GleapRating","GleapFileUpload","GleapChart","GleapArtifactFrame","GleapHostCard"] as const;
+export const GLEAP_COMPONENT_NAMES = ["GleapStatusPill","GleapStat","GleapTimeline","GleapKeyValue","GleapMeter","GleapProgress","GleapReceipt","GleapCodeCopy","GleapSlotPicker","GleapProductCarousel","GleapItemPicker","GleapPlanPicker","GleapRating","GleapFileUpload","GleapChart","GleapArtifactFrame","GleapHostCard"] as const;
 export const BASIC_COMPONENT_NAMES = ["Text","Image","Icon","Video","AudioPlayer","Row","Column","List","Card","Tabs","Modal","Divider","Button","TextField","CheckBox","ChoicePicker","Slider","DateTimeInput"] as const;
 
 export type GleapStatusPillProps = {
   label: string | A2uiBinding;
+  tone?: "neutral" | "info" | "success" | "warning" | "danger";
+};
+export type GleapStatProps = {
+  label: string | A2uiBinding;
+  value: string | A2uiBinding;
+  detail?: string | A2uiBinding;
+  trend?: "up" | "down" | "flat";
+  trendLabel?: string | A2uiBinding;
   tone?: "neutral" | "info" | "success" | "warning" | "danger";
 };
 export type GleapTimelineProps = {
@@ -23,6 +31,7 @@ export type GleapKeyValueProps = {
     label: string;
     value: string;
     url?: string;
+    valueTone?: "neutral" | "info" | "success" | "warning" | "danger";
   }>;
 };
 export type GleapMeterProps = {
@@ -41,6 +50,7 @@ export type GleapReceiptProps = {
   detail?: string;
   tone?: "success" | "neutral" | "pending" | "danger";
   struck?: boolean;
+  at?: string;
 };
 export type GleapCodeCopyProps = {
   code: string;
@@ -64,9 +74,16 @@ export type GleapSlotPickerProps = {
     type: "phone" | "text" | "textarea";
   }>;
   submitLabel?: string;
+  inviteLabel?: string;
   moreTimesUrl?: string;
   value: A2uiBinding;
   action: A2uiAction;
+  providerAction?: {
+    provider: "calendly" | "calcom";
+    url: string;
+    value: A2uiBinding;
+    action: A2uiAction;
+  };
 };
 export type GleapProductCarouselProps = {
   items: Array<{
@@ -85,6 +102,7 @@ export type GleapProductCarouselProps = {
       label: string;
       color: string;
     }>;
+    mode?: "order" | "buy" | "choose";
   }>;
   mode: "order" | "buy" | "choose";
   value: A2uiBinding;
@@ -109,8 +127,10 @@ export type GleapPlanPickerProps = {
     features: Array<string>;
     current?: boolean;
     recommended?: boolean;
+    ctaLabel?: string;
   }>;
   value: A2uiBinding;
+  label?: A2uiBinding;
   readOnly?: boolean;
 };
 export type GleapRatingProps = {
@@ -142,6 +162,7 @@ export type GleapHostCardProps = {
 
 export interface GleapComponentProps {
   GleapStatusPill: GleapStatusPillProps;
+  GleapStat: GleapStatProps;
   GleapTimeline: GleapTimelineProps;
   GleapKeyValue: GleapKeyValueProps;
   GleapMeter: GleapMeterProps;

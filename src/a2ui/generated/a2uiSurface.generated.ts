@@ -122,6 +122,8 @@ export interface StepAnswerContext {
   rating?: number;
   calendlyUri?: string;
   calcomBooking?: unknown;
+  /** Kai's answer step: the id of the pressed capability button (sent with its words as `message`). */
+  action?: string;
 }
 
 export interface AgentInputContext {
@@ -163,6 +165,9 @@ export interface A2uiActionResponse {
   /** `already_answered`, `not_allowed`, `expired`, … when `ok` is false. */
   reason?: string;
   surface?: A2uiSurface;
-  /** Action-specific result the old endpoint returned (the agent view, a state line). */
+  /**
+   * Action-specific result the old endpoint returned (the agent view, a state line). `card.answer` and
+   * `step.answer`: `label`, the words the customer's answer is shown as (the client's own, else the Server's).
+   */
   result?: Record<string, unknown>;
 }

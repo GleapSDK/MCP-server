@@ -1,5 +1,7 @@
 # Gleap MCP Server
 
+[![GleapSDK/MCP-server MCP server](https://glama.ai/mcp/servers/GleapSDK/MCP-server/badges/score.svg)](https://glama.ai/mcp/servers/GleapSDK/MCP-server)
+
 Connect your [Gleap](https://www.gleap.ai) workspace to Claude and other AI assistants via the [Model Context Protocol](https://modelcontextprotocol.io). Manage tickets, contacts, help center articles, and statistics using natural language.
 
 ## Prerequisites

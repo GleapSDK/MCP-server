@@ -4,10 +4,10 @@ import axios from 'axios';
 import { z } from 'zod';
 
 process.env.GLEAP_API_BASE = 'https://gleap-api.invalid/v3';
-const { registerSettingsTools } = await import('../build/tools/settings.tool.js');
-const { GetSettingsArgs } = await import('../build/schemas/settings.schema.js');
-const { runWithCreds } = await import('../build/utils/credentials.js');
-const { applySessionScopePolicy } = await import('../build/utils/sessionScope.js');
+const { registerSettingsTools } = await import('../src/tools/settings.tool.js');
+const { GetSettingsArgs } = await import('../src/schemas/settings.schema.js');
+const { runWithCreds } = await import('../src/utils/credentials.js');
+const { applySessionScopePolicy } = await import('../src/utils/sessionScope.js');
 
 const tools = new Map();
 const registry = { registerTool(name, config, handler) { tools.set(name, { config, handler }); } };

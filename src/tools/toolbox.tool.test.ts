@@ -3,7 +3,7 @@
 // inputs and results stay what AI clients know. Drives the real SDK server over an in-memory transport.
 import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -23,6 +23,7 @@ let sent: Sent[];
 let stored: Record<string, unknown>;
 let refusal: string | null;
 let confirmation: string | null;
+let failing: { method: string; status: number } | null;
 
 const isChange = (value: unknown): value is Change => !!value && typeof value === "object" && "key" in value && typeof value.key === "string";
 const changesIn = (body: unknown): Change[] =>
@@ -47,6 +48,7 @@ beforeEach(() => {
   stored = { "slaOptions.enabled": true, "slaOptions.defaultSla": 3600 };
   refusal = null;
   confirmation = null;
+  failing = null;
   axios.defaults.adapter = async (config) => {
     const method = `${config.method ?? "get"}`;
     const url = `${config.url ?? ""}`;
@@ -54,6 +56,10 @@ beforeEach(() => {
     const body: unknown = typeof config.data === "string" ? JSON.parse(config.data) : config.data;
     sent.push({ method, url, params, body });
     if (url !== `${API}/settings`) throw new Error(`unexpected request ${method} ${url}`);
+    if (failing?.method === method) {
+      const response = { data: { message: "Permission denied" }, status: failing.status, statusText: "Error", headers: {}, config };
+      throw new AxiosError("Request failed", "ERR_BAD_REQUEST", config, null, response);
+    }
     return { data: settingsAnswer(method, params, body), status: 200, statusText: "OK", headers: {}, config };
   };
 });
@@ -181,6 +187,21 @@ describe("update_sla saves single slaOptions fields through the settings registr
     const result = await call("update_sla", { minutes: 60 });
     assert.equal(result.isError, true);
     assert.match(result.text, /Ticket SLAs need the Pro plan\./);
+    assert.doesNotMatch(result.text, /SLA saved/);
+  });
+
+  test("the stored deadline cannot be read -> an error, nothing written", async () => {
+    failing = { method: "get", status: 403 };
+    const result = await call("update_sla", { enabled: false });
+    assert.equal(result.isError, true);
+    assert.equal(writes().length, 0);
+  });
+
+  test("the settings save fails -> the API's error, never 'saved'", async () => {
+    failing = { method: "put", status: 403 };
+    const result = await call("update_sla", { minutes: 30 });
+    assert.equal(result.isError, true);
+    assert.match(result.text, /403/);
     assert.doesNotMatch(result.text, /SLA saved/);
   });
 

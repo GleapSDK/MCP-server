@@ -41,6 +41,35 @@ const errorOf = (result: Result) => ("error" in result ? result.error : null);
 const dataOf = (result: Result): any => ("data" in result ? result.data : null);
 const failed = (response: GleapApiResponse) => response.isError === true || (response.structuredContent as any)?.error === true;
 
+const OFFICE_HOURS_FIELDS = ["openingTimes", "timezone", "alwaysOnline"] as const;
+const SLA_DEADLINE = "slaOptions.defaultSla";
+
+const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
+const recordsOf = (value: unknown): Record<string, unknown>[] => (Array.isArray(value) ? value.filter(isRecord) : []);
+
+/** A stored value as GET /settings shows it: `{ settings: [{ values: { [key]: value } }] }`. */
+const settingValueOf = (data: unknown, key: string): unknown =>
+  recordsOf(isRecord(data) ? data.settings : undefined)
+    .map((page) => (isRecord(page.values) ? page.values[key] : undefined))
+    .find((value) => value !== undefined);
+
+/**
+ * Saves stored fields through the project's settings registry (PUT /settings), the path update_settings takes:
+ * each field checked, gated and saved as its dashboard page saves it. What did not save comes back as an error.
+ */
+const saveSettings = async (changes: ReadonlyArray<{ key: string; value: unknown }>): Promise<GleapApiResponse | null> => {
+  const response = await gleapPut("/settings", { changes });
+  if (failed(response)) return response;
+  const answer: unknown = response.structuredContent;
+  const notSaved = [
+    ...recordsOf(isRecord(answer) ? answer.refused : undefined).map((entry) => `${entry.change}: ${entry.reason}`),
+    ...recordsOf(isRecord(answer) ? answer.needsConfirmation : undefined).map((entry) => `${entry.change} waits for the person's explicit yes (${entry.why})`),
+  ];
+  if (!notSaved.length) return null;
+  const message = `Not saved. ${notSaved.join("; ")}`;
+  return { isError: true, content: [{ type: "text", text: message }], structuredContent: { error: true, message } };
+};
+
 const localizedMerge = (current: unknown, next: Record<string, unknown> | undefined) =>
   next ? { ...(current && typeof current === "object" && !Array.isArray(current) ? (current as Record<string, unknown>) : {}), ...next } : undefined;
 
@@ -354,15 +383,10 @@ export const registerToolboxTools = (server: McpServer) => {
       }
       const bad = (args.openingTimes ?? []).filter((row) => row.closingTime <= row.openingTime);
       if (bad.length) return validationErrorResponse(`Closing time must be after opening time (${bad.map((row) => row.day).join(", ")}).`);
-      const flowConfig: Record<string, unknown> = {
-        ...(args.openingTimes ? { openingTimes: args.openingTimes } : {}),
-        ...(args.timezone ? { timezone: args.timezone } : {}),
-        ...(args.alwaysOnline !== undefined ? { alwaysOnline: args.alwaysOnline } : {}),
-      };
-      // PUT /projects sets flowConfig one level deep: the fields above are replaced, the rest stays.
-      const response = await gleapPut("/projects", { flowConfig });
-      if (failed(response)) return response;
-      return wrapResponse({ changed: Object.keys(flowConfig), message: "Office hours saved." });
+      const given = OFFICE_HOURS_FIELDS.filter((name) => args[name] !== undefined);
+      const notSaved = await saveSettings(given.map((name) => ({ key: `flowConfig.${name}`, value: args[name] })));
+      if (notSaved) return notSaved;
+      return wrapResponse({ changed: given, message: "Office hours saved." });
     },
   );
 
@@ -377,21 +401,18 @@ export const registerToolboxTools = (server: McpServer) => {
     },
     async (args): Promise<GleapApiResponse> => {
       if (args.enabled === undefined && args.minutes === undefined) return validationErrorResponse("Say what changes: enabled or minutes.");
-      const current = await gleapGetData("/projects/current");
-      const error = errorOf(current);
+      // A new deadline alone switches the SLA on.
+      const enabled = args.enabled ?? true;
+      const deadline = args.minutes === undefined ? await gleapGetData("/settings", { params: { keys: SLA_DEADLINE } }) : { data: null };
+      const error = errorOf(deadline);
       if (error) return error;
-      // slaOptions is stored as one object: send it whole, with only these two fields changed.
-      const stored: Record<string, unknown> = { ...((dataOf(current) as any)?.slaOptions ?? {}) };
-      const slaOptions = {
-        ...stored,
-        ...(args.enabled !== undefined ? { enabled: args.enabled } : args.minutes !== undefined ? { enabled: true } : {}),
-        ...(args.minutes !== undefined ? { defaultSla: args.minutes * 60 } : {}),
-      };
-      const response = await gleapPut("/projects", { slaOptions });
-      if (failed(response)) return response;
+      const seconds = args.minutes === undefined ? settingValueOf(dataOf(deadline), SLA_DEADLINE) : args.minutes * 60;
+      const changes = [{ key: "slaOptions.enabled", value: enabled }, ...(args.minutes === undefined ? [] : [{ key: SLA_DEADLINE, value: seconds }])];
+      const notSaved = await saveSettings(changes);
+      if (notSaved) return notSaved;
       return wrapResponse({
-        sla: { enabled: slaOptions.enabled === true, minutes: typeof slaOptions.defaultSla === "number" ? Math.round((slaOptions.defaultSla as number) / 60) : null },
-        message: slaOptions.enabled === true ? "SLA saved." : "SLA off.",
+        sla: { enabled, minutes: typeof seconds === "number" ? Math.round(seconds / 60) : null },
+        message: enabled ? "SLA saved." : "SLA off.",
       });
     },
   );

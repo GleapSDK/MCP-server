@@ -126,6 +126,15 @@ describe('HTTP', () => {
     assert.equal((await response.json()).error.code, -32600);
   });
 
+  test('a large JSON-RPC batch is refused before auth, quickly', async () => {
+    const batch = Array.from({ length: 2_000 }, () => ({ method: 'tools/call' }));
+    const started = Date.now();
+    const response = await post(batch);
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, -32600);
+    assert.ok(Date.now() - started < 1_000, `took ${Date.now() - started} ms`);
+  });
+
   test('a body over MCP_JSON_BODY_LIMIT gets 413 with the limit', async () => {
     const response = await post({ ...LIST_TOOLS, params: { padding: 'x'.repeat(70_000) } }, apiKeyHeaders());
     assert.equal(response.status, 413);

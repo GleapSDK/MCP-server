@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "eu": {
+      "url": "https://mcp.gleap.ai/mcp"
+    },
+    "us": {
+      "url": "https://mcp.us.gleap.ai/mcp",
+      "disabled": true
+    }
+  }
+}

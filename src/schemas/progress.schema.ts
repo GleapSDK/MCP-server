@@ -13,7 +13,7 @@ export const FIX_STATUSES = ["queued", "working", "needs_input", "completed", "f
 export const FIX_STEPS = ["investigating", "reproduced", "fixing"] as const;
 export const QUESTION_KINDS = ["question", "approval", "auth", "choice"] as const;
 export const QUESTION_AUDIENCES = ["customer", "team"] as const;
-export const AGENT_KINDS = ["claude_code", "codex", "cursor", "other"] as const;
+export const AGENT_KINDS = ["claude_code", "codex", "cursor", "antigravity", "other"] as const;
 export const AGENT_PHASES = ["investigating", "reproduced", "fixing", "pr_opened", "blocked", "done"] as const;
 
 export const ReportProgressArgs = z.object({
@@ -83,7 +83,7 @@ export const ReportProgressArgs = z.object({
   agentKind: z
     .enum(AGENT_KINDS)
     .optional()
-    .describe("Which coding agent you are: claude_code, codex, cursor, or other (then name yourself in agentName). Tags the session and every message you write. Send it on every report."),
+    .describe("Which coding agent you are: claude_code, codex, cursor, antigravity, or other (then name yourself in agentName). Tags the session and every message you write. Send it on every report."),
   agentName: z
     .string()
     .max(60)

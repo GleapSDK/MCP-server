@@ -127,6 +127,10 @@ export const PublishArtifactArgs = z.object({
     .describe("Pass the artifactId from an earlier result to publish a new version of the same page instead of a new one."),
 });
 
+export const GetSessionBriefArgs = z.object({
+  sessionId: SESSION_ID.unwrap().describe("The 24-char Gleap coding-session id your kickoff names."),
+});
+
 export const GetTicketScreenshotArgs = z.object({
   ticketId: z
     .string()

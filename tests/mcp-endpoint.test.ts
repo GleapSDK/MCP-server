@@ -161,6 +161,18 @@ describe('API key headers', () => {
     await client.close();
   });
 
+  test("the instructions match the Server's code-fix rule: such a session never writes to the customer", async () => {
+    const client = await connect(apiKeyHeaders());
+    const instructions = client.getInstructions() ?? '';
+    await client.close();
+    assert.doesNotMatch(instructions, /never refuses your writes/);
+    // A session started from a ticket's code fix reports and drafts; Kai tells the customer.
+    assert.match(instructions, /code fix[^\n]*never send(s)? (anything )?to the customer/i);
+    assert.match(instructions, /customerUpdateMessage/);
+    // A person's own AI client working a ticket outside a code fix still asks its operator, then sends.
+    assert.match(instructions, /ask your operator[^\n]*send_message/i);
+  });
+
   test('concurrent clients each get their own project, never another one', async () => {
     gleapApi.answerWith((request) => ({ status: 200, data: [{ _id: request.headers.project, name: `team of ${request.headers.project}` }] }));
     const projects = Array.from({ length: 12 }, (_, i) => `project-${i}`);

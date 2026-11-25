@@ -1,0 +1,21 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "gleap",
+  "displayName": "Gleap",
+  "description": "Work on your Gleap support workspace from Antigravity: read and answer tickets, look up customers, edit the help center and check support stats.",
+  "version": "1.0.0",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Show the open Gleap tickets with the highest priority and summarize each in one line.",
+    "Read the console logs and network requests of this Gleap bug report and find the cause in the code.",
+    "Draft a help center article in Gleap from what we just changed."
+  ],
+  "author": {
+    "name": "Gleap",
+    "url": "https://www.gleap.ai"
+  },
+  "homepage": "https://www.gleap.ai/mcp",
+  "repository": "https://github.com/GleapSDK/MCP-server",
+  "license": "MIT",
+  "keywords": ["gleap", "customer-support", "tickets", "bug-reporting", "help-center", "mcp"]
+}

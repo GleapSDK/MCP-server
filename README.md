@@ -36,6 +36,16 @@ Node.js 22 (`engines` in `package.json`). Before opening a PR, run `npm run type
 
 No API key or client ID setup is required. The OAuth flow handles authentication automatically.
 
+## Connecting to Google Antigravity
+
+Install the plugin in [`antigravity-plugin/`](antigravity-plugin/README.md), which bundles both regional servers and signs in with OAuth:
+
+```bash
+agy plugin install https://github.com/GleapSDK/MCP-server/tree/main/antigravity-plugin
+```
+
+Check the bundle with `agy plugin validate antigravity-plugin --strict` after changing it.
+
 ## Alternative: API key auth (for clients that support custom headers)
 
 Send these headers with every request:

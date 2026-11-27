@@ -1,7 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { GleapApiResponse } from "../types/index.js";
-import { gleapGetData, gleapPost, validationErrorResponse } from "../utils/api.js";
+import { gleapGetData, gleapPost, validationErrorResponse, wrapResponse } from "../utils/api.js";
+import type { A2uiActionMessage, A2uiActionResponse } from "../a2ui/generated/a2uiSurface.generated.js";
 
 const AnswerTicketCardArgs = z.object({
   ticketId: z.string().describe("The ticket whose open Kai card to read or answer"),
@@ -51,6 +52,35 @@ const describeCard = (card: CardView): string =>
     ...(card.proposal ? [`Proposed reply:\n${card.proposal}`] : []),
   ].join("\n");
 
+const TASK_ID = /^[A-Za-z0-9_-]{1,80}$/;
+
+/**
+ * Answers the card through the Gleap action endpoint (`POST /a2ui/action`) on
+ * the card's own surface `task:<id>`; the operator's words go in the context only.
+ */
+interface TaskActionInput {
+  card: CardView;
+  name: "task.answer" | "task.send";
+  context: Record<string, unknown>;
+}
+
+const sendTaskAction = async ({ card, name, context }: TaskActionInput): Promise<GleapApiResponse> => {
+  if (!TASK_ID.test(card.id)) return validationErrorResponse("Gleap returned a card this tool cannot answer. Open the ticket in Gleap to answer it.");
+  const message: A2uiActionMessage = {
+    version: "1.0",
+    action: { name, surfaceId: `task:${card.id}`, sourceComponentId: "mcp", timestamp: new Date().toISOString(), context },
+  };
+  const res = await gleapPost("/a2ui/action", message);
+  if (res.isError) return res;
+  const answer: Partial<A2uiActionResponse> = res.structuredContent;
+  if (answer.ok !== true) {
+    const reason = answer.reason || "refused";
+    return validationErrorResponse(`Gleap did not take this answer (${reason}). Read the card again: it may be answered or gone already.`);
+  }
+  // The action's own result is what the old card routes answered with; keep that as the tool's output.
+  return answer.result ? wrapResponse(answer.result) : res;
+};
+
 /**
  * Kai's open card on a ticket, for a person's own AI client: read it, answer a question card, or send a
  * proposed reply. Money, deletes, merges and releases stay a person's click in Gleap.
@@ -74,11 +104,11 @@ export const registerTicketCardTools = (server: McpServer) => {
       if (!wantsAction) return textResponse(describeCard(card));
       if (card.type === "question") {
         if (!answer?.trim()) return validationErrorResponse("This is a question card: pass `answer`.");
-        return gleapPost(`/hard-tickets/cards/${card.id}/answer`, { answer: answer.trim() });
+        return sendTaskAction({ card, name: "task.answer", context: { answer: answer.trim() } });
       }
       if (card.type === "proposed_reply") {
         if (send !== true) return validationErrorResponse("This is a proposed-reply card: pass `send: true` (and `text` to send an edited reply).");
-        return gleapPost(`/hard-tickets/cards/${card.id}/send`, text?.trim() ? { text: text.trim() } : {});
+        return sendTaskAction({ card, name: "task.send", context: text?.trim() ? { text: text.trim() } : {} });
       }
       return textResponse(`${describeCard(card)}\n\nThis card is decided by a person in Gleap (open the ticket there). Nothing was changed.`);
     },
